@@ -6,7 +6,7 @@
         <en>Unused Mods</en>
     </title>
     <description>
-        <en>Finds downloaded mods that you aren't actually using in any of your savegames. When a savegame starts, it checks every savegame for owned vehicles, placeables, hand tools and items and lists the mods that have none. Maps, mods without store items, and script mods enabled in a savegame are ignored. The log summary includes the mods folder path, and each unused mod is listed by file name and size in the log and in modSettings/FS25_UnusedMods/unusedMods.xml.</en>
+        <en>Finds downloaded mods that you aren't actually using in any of your savegames. When a savegame starts, it checks every savegame for owned vehicles, placeables, hand tools and items and lists the mods that have none. Maps, mods without store items, and script mods enabled in a savegame are ignored. The log summary includes the mods folder path, and each unused mod is listed by file name in the log and in modSettings/FS25_UnusedMods/unusedMods.xml.</en>
     </description>
     <iconFilename>icon.dds</iconFilename>
     <multiplayer supported="false"/>
