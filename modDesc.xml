@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<modDesc descVersion="106">
+    <author>TypeO Modding</author>
+    <version>1.0.0.0</version>
+    <title>
+        <en>Unused Mods</en>
+    </title>
+    <description>
+        <en>Finds downloaded mods that you aren't actually using in any of your savegames. When a savegame starts, it checks every savegame for owned vehicles, placeables, hand tools and items and lists the mods that have none. Maps, mods without store items, and script mods enabled in a savegame are ignored. The list, with each mod's file path, is written to the log (search for [UnusedMods]) and to modSettings/FS25_UnusedMods/unusedMods.xml.</en>
+    </description>
+    <iconFilename>icon.dds</iconFilename>
+    <multiplayer supported="false"/>
+    <extraSourceFiles>
+        <sourceFile filename="scripts/UnusedMods.lua"/>
+    </extraSourceFiles>
+</modDesc>
+
+
