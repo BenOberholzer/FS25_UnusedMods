@@ -78,6 +78,62 @@ function UnusedMods.getModPath(modName)
     return g_modsDirectory .. modName .. "/"
 end
 
+function UnusedMods.getModFileName(path)
+    return path:gsub("[/\\]+$", ""):match("[^/\\]+$")
+end
+
+function UnusedMods.getFileSize(path)
+    if io == nil or io.open == nil then
+        return nil
+    end
+
+    local file = io.open(path, "rb")
+    if file == nil then
+        return nil
+    end
+
+    local size = file:seek("end")
+    file:close()
+    return size
+end
+
+function UnusedMods:addFileSizeEntry(path, isDirectory)
+    if self.modSize == nil then
+        return
+    end
+
+    if isDirectory then
+        getFiles(path, "addFileSizeEntry", self)
+    else
+        local size = UnusedMods.getFileSize(path)
+        if size == nil then
+            self.modSize = nil
+        else
+            self.modSize = self.modSize + size
+        end
+    end
+end
+
+function UnusedMods.getModSize(path)
+    if path:sub(-1) ~= "/" then
+        return UnusedMods.getFileSize(path)
+    end
+
+    local accumulator = setmetatable({ modSize = 0 }, { __index = UnusedMods })
+    getFiles(path, "addFileSizeEntry", accumulator)
+    return accumulator.modSize
+end
+
+function UnusedMods.formatFileSize(size)
+    local units = { "B", "KB", "MB", "GB", "TB" }
+    local value, unit = size, 1
+    while value >= 1024 and unit < #units do
+        value = value / 1024
+        unit = unit + 1
+    end
+    return string.format("%.1f %s", value, units[unit])
+end
+
 -- Returns "map", "noStoreItems", "unreadable" or "buyable", plus whether the mod ships scripts.
 function UnusedMods.classify(modName)
     local path = g_modsDirectory .. modName .. "/modDesc.xml"
@@ -126,7 +182,14 @@ function UnusedMods.generate()
                     scriptsInUse = scriptsInUse + 1
                 end
                 if not inUse then
-                    table.insert(unused, { name = mod.modName, title = mod.title or "", path = UnusedMods.getModPath(mod.modName) })
+                    local path = UnusedMods.getModPath(mod.modName)
+                    local size = UnusedMods.getModSize(path)
+                    table.insert(unused, {
+                        name = mod.modName,
+                        title = mod.title or "",
+                        path = UnusedMods.getModFileName(path),
+                        size = size
+                    })
                 end
             else
                 skipped[kind] = skipped[kind] + 1
@@ -135,10 +198,14 @@ function UnusedMods.generate()
     end
     table.sort(unused, function(a, b) return a.name:lower() < b.name:lower() end)
 
-    Logging.info("[UnusedMods] %d of %d buyable mods are unused across %d savegames (ignored: %d maps, %d without store items, %d unreadable; %d script mods counted as used because they are enabled)",
-        #unused, checked, saves, skipped.map, skipped.noStoreItems, skipped.unreadable, scriptsInUse)
+    Logging.info("[UnusedMods] %d of %d buyable mods are unused across %d savegames (ignored: %d maps, %d without store items, %d unreadable; %d script mods counted as used because they are enabled; mods folder: %s)",
+        #unused, checked, saves, skipped.map, skipped.noStoreItems, skipped.unreadable, scriptsInUse, g_modsDirectory)
     for _, m in ipairs(unused) do
-        Logging.info("[UnusedMods]   %s (%s) - %s", m.name, m.title, m.path)
+        if m.size == nil then
+            Logging.warning("[UnusedMods] could not determine the size of %s", m.name)
+        end
+        Logging.info("[UnusedMods]   %s (%s) - %s [%s]", m.name, m.title, m.path,
+            m.size ~= nil and UnusedMods.formatFileSize(m.size) or "size unknown")
     end
 
     local dir = UnusedMods.settingsDir or (getUserProfileAppPath() .. "modSettings/" .. UnusedMods.modName .. "/")
@@ -146,6 +213,7 @@ function UnusedMods.generate()
     createFolder(dir)
     local file = dir .. "unusedMods.xml"
     local xml = createXMLFile("unusedModsOut", file, "unusedMods")
+    setXMLString(xml, "unusedMods#modsPath", g_modsDirectory)
     setXMLInt(xml, "unusedMods#savegames", saves)
     setXMLInt(xml, "unusedMods#checked", checked)
     setXMLInt(xml, "unusedMods#unused", #unused)
@@ -158,6 +226,9 @@ function UnusedMods.generate()
         setXMLString(xml, key .. "#name", m.name)
         setXMLString(xml, key .. "#title", m.title)
         setXMLString(xml, key .. "#path", m.path)
+        if m.size ~= nil then
+            setXMLString(xml, key .. "#sizeBytes", tostring(m.size))
+        end
     end
     saveXMLFile(xml)
     delete(xml)
@@ -165,4 +236,3 @@ function UnusedMods.generate()
 end
 
 FSBaseMission.onStartMission = Utils.appendedFunction(FSBaseMission.onStartMission, UnusedMods.run)
-
